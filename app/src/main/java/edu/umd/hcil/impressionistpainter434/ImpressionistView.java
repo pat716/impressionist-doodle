@@ -24,6 +24,7 @@ import java.util.Set;
 /**
  * Created by jon on 3/20/2016.
  */
+
 public class ImpressionistView extends View {
 
     private ImageView _imageView;
@@ -39,18 +40,18 @@ public class ImpressionistView extends View {
     private boolean _useMotionSpeedForBrushStrokeSize = true;
     private float _brushStrokeSizeSpeedMultiplier = 0.25f;
     private float _brushStrokeSizeSpeedPow = 0.5f;
-    private boolean _useAverageColorWithinRadius = true;
+    private boolean _useAverageColorWithinRadius = false;
     private Paint _paintBorder = new Paint();
-    private BrushType _brushType = BrushType.CircleSoft;
+    private BrushType _brushType = BrushType.Square;
     private float _minBrushRadius = 2;
     private float _maxBrushRadius = 150;
 
-    private int _minSplatterNum = 3;
-    private int _maxSplatterNum = 10;
-    private float _splatterRandomizeFactor = 0.125f;
-    private float _minSplatterDistanceMultiplier = 1;
-    private float _maxSplatterDistanceMultiplier = 5;
-    private boolean _calculateSplatterColorsIndependently = true;
+    private int _minSplatterNum = 2;
+    private int _maxSplatterNum = 6;
+    private float _splatterRandomizeFactor = 0.025f;
+    private float _minSplatterDistanceMultiplier = 0;
+    private float _maxSplatterDistanceMultiplier = 4;
+    private boolean _calculateSplatterColorsIndependently = false;
 
     private boolean _sprayPaintMode = false;
     private ArrayList<SprayPaintTrail> _sprayPaintTrails;
@@ -145,6 +146,10 @@ public class ImpressionistView extends View {
         }
     }
 
+    public Bitmap getCurrentPainting(){
+        return _offScreenBitmap;
+    }
+
     /**
      * Sets the ImageView, which hosts the image that we will paint in this view
      * @param imageView
@@ -159,6 +164,15 @@ public class ImpressionistView extends View {
      */
     public void setBrushType(BrushType brushType){
         _brushType = brushType;
+    }
+
+    public boolean getUseAverageColorSampling(){
+        return _useAverageColorWithinRadius;
+    }
+
+    public void setUseAverageColorSampling(boolean newValue){
+        this._useAverageColorWithinRadius = newValue;
+        this._calculateSplatterColorsIndependently = newValue;
     }
 
     public boolean getSprayPaintMode(){
@@ -210,7 +224,7 @@ public class ImpressionistView extends View {
                 continue;
             }
             s.update();
-            s.renderToCanvas(this, _offScreenCanvas, _imageView, getBitmapPositionInsideImageView(_imageView));
+            s.renderToCanvas(_offScreenCanvas, _imageView, getBitmapPositionInsideImageView(_imageView));
             trailDrawn = true;
         }
 
@@ -332,6 +346,7 @@ public class ImpressionistView extends View {
         }
 
         _paint.setStyle(Paint.Style.STROKE);
+        _paint.setStrokeCap(Paint.Cap.SQUARE);
         _paint.setColor(color);
         _paint.setStrokeWidth(radius);
         _offScreenCanvas.drawPoint(x, y, _paint);
@@ -344,7 +359,7 @@ public class ImpressionistView extends View {
         int color = defaultColor;
 
         _paint.setStyle(Paint.Style.STROKE);
-
+        _paint.setStrokeCap(Paint.Cap.SQUARE);
         for(int i = 0; i < _softBrushNumStages; i++){
             float progressRatio = ((float) i)/((float) _softBrushNumStages);
             float currRadius = (1 - progressRatio) * (radius - _minBrushRadius) + _minBrushRadius;
@@ -470,8 +485,14 @@ public class ImpressionistView extends View {
             float currSplatterX = x+ ((float) xOffset), currSplatterY = y + ((float) yOffset);
 
             if(_calculateSplatterColorsIndependently){
-                int tempColor = getColorFromImageWithinRadius(_imageView, bitmapPosition, currSplatterX,
-                        currSplatterY, finalSplatterRadius, true);
+                int tempColor = defaultColor;
+                if(_useAverageColorWithinRadius){
+                    tempColor = getColorFromImageWithinRadius(_imageView, bitmapPosition, currSplatterX,
+                            currSplatterY, finalSplatterRadius, true);
+                } else {
+                    tempColor = getColorFromImageAtPoint(_imageView, bitmapPosition, currSplatterX, currSplatterY);
+                }
+
                 if(tempColor != defaultColor){
                     _paint.setColor(tempColor);
                 }
@@ -574,20 +595,19 @@ public class ImpressionistView extends View {
             float angle = (float) (Math.random() * Math.PI * 2);
             float xOffset = (float) Math.cos(angle) * startDistance, yOffset = (float) Math.sin(angle) * startDistance;
             float trailRadius = (float) (Math.random() * (trailEffectiveRadius * _sprayPaintRadiusSizeMultiplier * _sprayPaintTrailRadiusSizeMultiplier));
-            SprayPaintTrail s = new SprayPaintTrail(x + xOffset, y + yOffset, trailRadius, color);
+            SprayPaintTrail s = new SprayPaintTrail(x + xOffset, y + yOffset, trailRadius, color, this);
             _sprayPaintTrails.add(0, s);
         }
 
         return true;
     }
 
-    private void processMotionEventBrush(MotionEvent motionEvent){
+    private boolean processMotionEventBrush(MotionEvent motionEvent){
         Rect bitmapPosition = getBitmapPositionInsideImageView(_imageView);
         boolean needInvalidate = false;
         switch (motionEvent.getAction()){
             case MotionEvent.ACTION_DOWN:
-
-                break;
+                return true;
             case MotionEvent.ACTION_MOVE:
                 float endX = motionEvent.getX(), endY = motionEvent.getY();
                 float endBrushRadius = _defaultRadius;
@@ -666,9 +686,6 @@ public class ImpressionistView extends View {
                         break;
                 }
                 break;
-            case MotionEvent.ACTION_UP:
-
-                break;
             default:
                 break;
         }
@@ -676,15 +693,16 @@ public class ImpressionistView extends View {
         if(needInvalidate) {
             invalidate();
         }
+
+        return true;
     }
 
-    private void processMotionEventSprayPaint(MotionEvent motionEvent){
+    private boolean processMotionEventSprayPaint(MotionEvent motionEvent){
         Rect bitmapPosition = getBitmapPositionInsideImageView(_imageView);
         boolean needInvalidate = false;
         switch (motionEvent.getAction()){
             case MotionEvent.ACTION_DOWN:
-
-                break;
+                return true;
             case MotionEvent.ACTION_MOVE:
                 float endX = motionEvent.getX(), endY = motionEvent.getY();
                 float endBrushRadius = _defaultRadius;
@@ -722,6 +740,8 @@ public class ImpressionistView extends View {
         if(needInvalidate) {
             invalidate();
         }
+
+        return true;
     }
 
     @Override
@@ -736,12 +756,10 @@ public class ImpressionistView extends View {
         }
 
         if(_sprayPaintMode){
-            processMotionEventSprayPaint(motionEvent);
+            return processMotionEventSprayPaint(motionEvent);
         } else {
-            processMotionEventBrush(motionEvent);
+            return processMotionEventBrush(motionEvent);
         }
-
-        return true;
     }
 
     /**

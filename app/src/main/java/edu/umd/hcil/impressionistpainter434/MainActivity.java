@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.URLUtil;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.PopupMenu.OnMenuItemClickListener;
@@ -23,6 +24,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 public class MainActivity extends AppCompatActivity implements OnMenuItemClickListener, SeekBar.OnSeekBarChangeListener {
 
@@ -84,7 +87,52 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         popupMenu.show();
     }
 
-    public void setSprayPaintToolsAlpha(){
+    public void onButtonClickSavePainting(View v){
+        Bitmap painting = _impressionistView.getCurrentPainting();
+        if(painting == null){
+            Toast.makeText(this, "Nothing to save", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Calendar calendar = new GregorianCalendar();
+        String filename = "Impressionist painting ";
+        filename += calendar.get(Calendar.YEAR) + "-";
+        filename += calendar.get(Calendar.MONTH) + "-" + calendar.get(Calendar.DAY_OF_MONTH) + " ";
+        filename += "at " + calendar.get(Calendar.HOUR) + "." + calendar.get(Calendar.MINUTE) + "." +
+                calendar.get(Calendar.SECOND);
+        String description = "Image created by ImpressionistPainter434 on " + calendar.toString();
+
+
+        String savedPath = MediaStore.Images.Media.insertImage(getContentResolver(), painting, filename, description);
+        if(savedPath == null){
+            Toast.makeText(this, "Error: painting could not be saved", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Saved painting to \"" + savedPath + "\"", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void onButtonClickColorSampling(View v){
+        boolean newValue = !_impressionistView.getUseAverageColorSampling();
+        if(newValue){
+            Toast.makeText(this, "Color Sampling Mode: Accurate", Toast.LENGTH_SHORT).show();
+            try {
+                ((Button) findViewById(R.id.buttonColorSampling)).setText(R.string.color_sampling_average);
+            } catch (Exception e){
+                e.printStackTrace();
+                return;
+            }
+        } else {
+            Toast.makeText(this, "Color Sampling Mode: Fast", Toast.LENGTH_SHORT).show();
+            try {
+                ((Button) findViewById(R.id.buttonColorSampling)).setText(R.string.color_sampling_point);
+            } catch (Exception e){
+                e.printStackTrace();
+                return;
+            }
+        }
+        _impressionistView.setUseAverageColorSampling(newValue);
+    }
+
+    public void updateSprayPaintTools(){
         try {
             View sprayPaintButton = findViewById(R.id.buttonSprayPaint);
             View sprayPaintSeekBar = findViewById(R.id.sprayPaintIntensityContainer);
@@ -103,14 +151,17 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
     public void onButtonClickSprayPaint(View v){
         boolean newMode = !_impressionistView.getSprayPaintMode();
         String newModeString;
+        int toastLength;
         if(newMode){
-            newModeString = "ON";
+            newModeString = "ON (Tap button again or select a brush to deactivate)";
+            toastLength = Toast.LENGTH_LONG;
         } else {
             newModeString = "OFF";
+            toastLength = Toast.LENGTH_SHORT;
         }
-        Toast.makeText(this, "Spray Paint Mode: " + newModeString, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Spray Paint Mode: " + newModeString, toastLength).show();
         _impressionistView.setSprayPaintMode(newMode);
-        setSprayPaintToolsAlpha();
+        updateSprayPaintTools();
     }
 
     public boolean onMenuItemClick(MenuItem item) {
@@ -119,37 +170,37 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 Toast.makeText(this, "Circle Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.Circle);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
             case R.id.menuSquare:
                 Toast.makeText(this, "Square Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.Square);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
             case R.id.menuLine:
                 Toast.makeText(this, "Line Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.Line);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
             case R.id.menuCircleSplatter:
                 Toast.makeText(this, "Circle Splatter Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.CircleSplatter);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
             case R.id.menuSquareSoft:
                 Toast.makeText(this, "Soft Square Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.SquareSoft);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
             case R.id.menuCircleSoft:
                 Toast.makeText(this, "Soft Circle Brush", Toast.LENGTH_SHORT).show();
                 _impressionistView.setBrushType(BrushType.CircleSoft);
                 _impressionistView.setSprayPaintMode(false);
-                setSprayPaintToolsAlpha();
+                updateSprayPaintTools();
                 return true;
         }
         return false;

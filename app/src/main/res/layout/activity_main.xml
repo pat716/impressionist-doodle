@@ -63,9 +63,23 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="Save"
+                android:id="@+id/buttonSavePainting"
+                android:onClick="onButtonClickSavePainting"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="Brush"
                 android:id="@+id/buttonBrush"
                 android:onClick="onButtonClickSetBrush"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/buttonColorSampling"
+                android:onClick="onButtonClickColorSampling"
+                android:text="@string/color_sampling_point" />
 
             <Button
                 android:layout_width="wrap_content"

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ImpressionistPainter434</string>
+    <string name="color_sampling_average">Color Sample: Accurate</string>
+    <string name="color_sampling_point">Color Sample: Fast</string>
 </resources>
